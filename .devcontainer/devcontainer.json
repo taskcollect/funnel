@@ -1,20 +1,16 @@
 {
 	// intrinsic name of the dev container
-	"name": "Go",
-
+	"name": "taskcollect/funnel (Go)",
 	// the docker compose file (relative to .devcontainer)
 	"dockerComposeFile": [
 		"docker-compose.yml"
 	],
-
 	// run this service from the docker-compose file
 	"service": "devcontainer",
-
 	// VSCode extensions to install
 	"extensions": [
 		"golang.Go",
 	],
-
 	// set VSCode extension defaults
 	"settings": {
 		"go.toolsManagement.checkForUpdates": "local",
@@ -22,12 +18,10 @@
 		"go.gopath": "/go",
 		"go.goroot": "/usr/local/go"
 	},
-
 	"remoteEnv": {
 		"CGO_ENABLED": "0",
 		"GOOS": "linux"
 	},
-	
 	"remoteUser": "vscode",
 	// wheer the files are in the container, this should be vol-mounted in the docker-compose file
 	"workspaceFolder": "/home/vscode/workspace",

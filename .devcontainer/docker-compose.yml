@@ -1,30 +1,51 @@
 version: "3"
 services:
-  devcontainer:
-    # add services that this devcontainer depends on here
-    depends_on: [
-      # database
-    ]
+    devcontainer:
+        # add services that this devcontainer depends on here
+        depends_on: [daymap]
 
-    cap_add: 
-      - SYS_PTRACE
-    security_opt:
-      - seccomp:unconfined
+        cap_add:
+            - SYS_PTRACE
+        security_opt:
+            - seccomp:unconfined
+
+        build:
+            context: ./devcontainer
+
+        volumes:
+            - ../:/home/vscode/workspace
+
+        command: /bin/sh -c "while sleep 1000; do :; done"
+
+    # -- add any service below this line --
+
+    daymap:
+        # if this image doesn't exist online (and it probably doesn't, build and tag the daymapgetter service before running this file)
+        image: ghcr.io/taskcollect/daymap-getter
+        restart: unless-stopped
+        # deploy:
+        #     mode: replicated
+        #     replicas: 6
+
+    ews:
+        image: ghcr.io/taskcollect/ews-getter
+        restart: unless-stopped
     
-    build:
-      context: ./devcontainer
-
-    volumes: 
-      - ../:/home/vscode/workspace
-
-    command: /bin/sh -c "while sleep 1000; do :; done"
-  
-  # -- add any service below this line --
-
-  # database:
-  #   image: postgres
-  #   environment:
-  #     POSTGRES_USER: dev
-  #     POSTGRES_PASSWORD: dev
-  #     POSTGRES_DB: taskcollect
-  #   restart: always
+    userman:
+        image: ghcr.io/taskcollect/userman
+        restart: unless-stopped
+        environment:
+            DB_HOST: "database"
+            DB_PORT: 5432
+            DB_USER: "dev"
+            DB_PASS: "dev"
+            DB_NAME: "taskcollect"
+            BIND_ADDR: ":2000"
+        
+    database:
+        image: postgres
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: dev
+            POSTGRES_PASSWORD: dev
+            POSTGRES_DB: taskcollect
