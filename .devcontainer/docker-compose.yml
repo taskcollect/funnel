@@ -2,7 +2,10 @@ version: "3"
 services:
     devcontainer:
         # add services that this devcontainer depends on here
-        depends_on: [daymap]
+        depends_on:
+            - daymap
+            - email
+            - userman
 
         cap_add:
             - SYS_PTRACE
@@ -27,13 +30,15 @@ services:
         #     mode: replicated
         #     replicas: 6
 
-    ews:
-        image: ghcr.io/taskcollect/ews-getter
+    email:
+        image: ghcr.io/taskcollect/email-getter
         restart: unless-stopped
     
     userman:
         image: ghcr.io/taskcollect/userman
         restart: unless-stopped
+        depends_on:
+            - database
         environment:
             DB_HOST: "database"
             DB_PORT: 5432
