@@ -8,7 +8,7 @@ Request:
     "username": "some_user123",
     "password": "p@ssw0rd_in_plaintext",
     "start": 1609421400, // timestamp, for example this is jan 1st 2021
-    "end": 1640957400, // timestamp, for example this is jan 1st 2022
+    "end": 1640957400 // timestamp, for example this is jan 1st 2022
 }
 ```
 
@@ -41,4 +41,42 @@ Response: 200
     { /* another lesson */ },
     { /* another lesson */ }
 ]
+```
+---
+POST /v1/lessons/plans
+
+Request:
+```jsonc
+{
+    "username": "some_user123",
+    "password": "p@ssw0rd_in_plaintext",
+    "lesson_id": 1234567
+}
+```
+
+Response: 200
+```jsonc
+{
+    "notes": [
+        {
+            // fields can disappear from here if they're not set in daymap
+            "title": "Note Title",
+            "content": "Blah blah blah, we're doing learning today...",
+            "links": {
+                // links fished out from content
+                "Video You Should Watch": "https://youtube.com/(something)"
+            },
+            "files": {
+                // this is a daymap attachment id, a download url can be constructed using it
+                "CoolDocument.docx": 123456
+            }
+        },
+        { /* another note on same lesson */ },
+        { /* another note on same lesson */ }
+    ],
+    "extra_files": {
+        // files not belonging to any specific note, just placed out in the void
+        "ExtraDocument.pdf": 111222
+    }
+}
 ```
