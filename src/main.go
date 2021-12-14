@@ -22,6 +22,7 @@ func makeMux() *http.ServeMux {
 	handler := handlers.NewBaseHandler()
 
 	mux.HandleFunc("/v1/lessons", handler.GetLessons)
+	mux.HandleFunc("/v1/lessons/plans", handler.GetLessonPlans)
 
 	return mux
 }

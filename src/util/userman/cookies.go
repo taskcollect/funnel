@@ -59,6 +59,7 @@ func FetchDaymapCookies(user string, password string) ([]byte, error) {
 	}
 
 	if cType == jsonparser.NotExist {
+		log.Println("no cookies stored for user " + user)
 		return nil, nil
 	}
 

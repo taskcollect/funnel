@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -53,29 +52,27 @@ func PopulateBodyWithAuth(body []byte, auth *DaymapAuthMethod) ([]byte, error) {
 	Relies on PopulateBodyWithAuth, and talks to daymap-getter.
 */
 func GetLessons(auth *DaymapAuthMethod, startTime, endTime time.Time) ([]byte, error) {
-	body := []byte{'{', '}'}
+	payload := []byte{'{', '}'}
 
 	// add the auth info
-	body, err := PopulateBodyWithAuth(body, auth)
+	payload, err := PopulateBodyWithAuth(payload, auth)
 	if err != nil {
 		return nil, errors.New("bad auth structure")
 	}
 
 	// add the timestamps
-	body, err = jsonparser.Set(body, []byte(fmt.Sprint(startTime.Unix())), "start")
+	payload, err = jsonparser.Set(payload, []byte(fmt.Sprint(startTime.Unix())), "start")
 	if err != nil {
 		return nil, err
 	}
 
-	body, err = jsonparser.Set(body, []byte(fmt.Sprint(endTime.Unix())), "end")
+	payload, err = jsonparser.Set(payload, []byte(fmt.Sprint(endTime.Unix())), "end")
 	if err != nil {
 		return nil, err
 	}
-
-	log.Println(string(body))
 
 	// construct the request object
-	res, err := http.Post("http://daymap:9000/lessons/", "application/json", bytes.NewReader(body))
+	res, err := http.Post("http://daymap:9000/lessons/", "application/json", bytes.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +103,64 @@ func GetLessons(auth *DaymapAuthMethod, startTime, endTime time.Time) ([]byte, e
 	if dType != jsonparser.Array {
 		println(dType)
 		return nil, errors.New("data in response was not an array (?)")
+	}
+
+	return data, nil
+}
+
+/*
+	Given a DaymapAuthMethod & a lesson ID, get the lesson plans for that lesson
+	ID using the provided credentials.
+
+	Relies on PopulateBodyWithAuth, and talks to daymap-getter.
+*/
+func GetLessonPlans(auth *DaymapAuthMethod, lessonID int) ([]byte, error) {
+	payload := []byte{'{', '}'}
+
+	// add the auth info
+	payload, err := PopulateBodyWithAuth(payload, auth)
+	if err != nil {
+		return nil, errors.New("bad auth structure")
+	}
+
+	// add the lesson id
+	payload, err = jsonparser.Set(payload, []byte(fmt.Sprint(lessonID)), "lesson_id")
+	if err != nil {
+		return nil, err
+	}
+
+	// construct the request object
+	res, err := http.Post("http://daymap:9000/lessons/plans/", "application/json", bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+
+	switch res.StatusCode {
+	case 401:
+		return nil, errors.New("bad auth")
+	case 502:
+		return nil, errors.New("bad daymap")
+	case 500:
+		return nil, errors.New("upstream error")
+	case 200:
+		break
+	default:
+		return nil, fmt.Errorf("got weird code: %d", res.StatusCode)
+	}
+
+	resp, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	data, dType, _, err := jsonparser.Get(resp, "data")
+	if err != nil {
+		return nil, err
+	}
+
+	if dType != jsonparser.Object {
+		println(dType)
+		return nil, errors.New("data in response was not an object (?)")
 	}
 
 	return data, nil
