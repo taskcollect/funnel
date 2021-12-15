@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"log"
 	"main/util/daymap"
+	"main/util/email"
 	"net/http"
 	"sync"
 
@@ -62,8 +64,15 @@ func (h *BaseHandler) GetAllMessages(w http.ResponseWriter, r *http.Request) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// FIXME: implement this
-		data_ch <- getterRetVal{"email", []byte("{\"a\":\"b\"}"), nil}
+
+		// get last 100 emails
+		emails, err := email.GetAllEmails(daymapAuth.Username, daymapAuth.Password, 100)
+		if err != nil {
+			data_ch <- getterRetVal{"", nil, err}
+			return
+		}
+
+		data_ch <- getterRetVal{"emails", emails, nil}
 	}()
 
 	// channel to signal when everything is done, may exit with an error
@@ -86,6 +95,7 @@ func (h *BaseHandler) GetAllMessages(w http.ResponseWriter, r *http.Request) {
 
 				// FIXME: send the client back something sensible here
 				w.WriteHeader(http.StatusInternalServerError)
+				log.Println(rv.err.Error())
 
 				done_ch <- rv.err
 				return
@@ -121,15 +131,4 @@ func (h *BaseHandler) GetAllMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(out)
-
-	// if err != nil {
-	// 	writeAppropriateError(err, w)
-	// 	return
-	// }
-
-	// err = filterAndWriteData(fullresp, w)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
 }
