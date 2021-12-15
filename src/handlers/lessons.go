@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"main/util/daymap"
@@ -26,21 +27,57 @@ func backgroundCookieUpdate(auth *daymap.DaymapAuthMethod, data []byte) {
 	}
 }
 
-func (h *BaseHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
-	if !EnsureMethod("POST", w, r) {
-		return
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
+func parseBodyAndGetDaymapAuth(reader io.ReadCloser, w http.ResponseWriter) ([]byte, *daymap.DaymapAuthMethod, error) {
+	body, err := ioutil.ReadAll(reader)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return nil, nil, err
 	}
 
 	auth, err := userman.GetDaymapAuthMethod(body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
+		return nil, nil, err
+	}
+
+	return body, auth, nil
+}
+
+// helper method to write the appropriate error header for daymap-getter interfaces
+func writeAppropriateError(err error, w http.ResponseWriter) {
+	switch err.Error() {
+	case "bad auth":
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	case "bad daymap":
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
+	log.Println(err.Error())
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func filterAndWriteData(fullresp []byte, w http.ResponseWriter) error {
+	data, _, _, err := jsonparser.Get(fullresp, "data")
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+
+	_, err = w.Write(data)
+	return err
+}
+
+func (h *BaseHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
+	if !EnsureMethod("POST", w, r) {
+		return
+	}
+
+	body, auth, err := parseBodyAndGetDaymapAuth(r.Body, w)
+	if err != nil {
+		// error already handled by function
 		return
 	}
 
@@ -56,30 +93,25 @@ func (h *BaseHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := daymap.GetLessons(
+	fullresp, err := daymap.GetLessons(
 		auth,
 		time.Unix(startTimestamp, 0),
 		time.Unix(endTimestamp, 0),
 	)
-	if err != nil {
 
-		switch err.Error() {
-		case "bad auth":
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case "bad daymap":
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		log.Println(err.Error())
+	if err != nil {
+		writeAppropriateError(err, w)
+		return
+	}
+
+	err = filterAndWriteData(fullresp, w)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-
 	}
-	w.Write(data)
 
 	// update cookies in bg if everything went well
-	go backgroundCookieUpdate(auth, data)
+	go backgroundCookieUpdate(auth, fullresp)
 }
 
 func (h *BaseHandler) GetLessonPlans(w http.ResponseWriter, r *http.Request) {
@@ -87,16 +119,9 @@ func (h *BaseHandler) GetLessonPlans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, auth, err := parseBodyAndGetDaymapAuth(r.Body, w)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	auth, err := userman.GetDaymapAuthMethod(body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		// error already handled by function
 		return
 	}
 
@@ -106,26 +131,21 @@ func (h *BaseHandler) GetLessonPlans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := daymap.GetLessonPlans(
+	fullresp, err := daymap.GetLessonPlans(
 		auth, int(lessonID),
 	)
-	if err != nil {
 
-		switch err.Error() {
-		case "bad auth":
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case "bad daymap":
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		log.Println(err.Error())
+	if err != nil {
+		writeAppropriateError(err, w)
+		return
+	}
+
+	err = filterAndWriteData(fullresp, w)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-
 	}
-	w.Write(data)
 
 	// update cookies in bg if everything went well
-	go backgroundCookieUpdate(auth, data)
+	go backgroundCookieUpdate(auth, fullresp)
 }

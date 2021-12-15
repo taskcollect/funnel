@@ -149,5 +149,10 @@ func ParseAndUpdateCookies(user string, pass string, fullresp []byte) error {
 		return err
 	}
 
+	if cType == jsonparser.NotExist {
+		// no cookies returned in getter response
+		return nil
+	}
+
 	return UpdateDaymapCookies(user, pass, cookies)
 }
