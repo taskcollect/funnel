@@ -80,3 +80,43 @@ Response: 200
     }
 }
 ```
+
+---
+POST /v1/messages
+
+Request:
+```jsonc
+{
+    "username": "some_user123",
+    "password": "p@ssw0rd_in_plaintext"
+}
+```
+
+Response: 200
+```jsonc
+{
+    "emails": [
+        {
+            "id": "big id in base64",
+            "from": "Joe Smith",
+            "isRead": false,
+            "subject": "This is the 16th unsubmitted assignment of the week",
+            "timeSent": 1639437354 // unix timestamp
+        },
+        { /* ... */ },
+        { /* ... */ },
+        { /* ... */ }
+    ],
+    "daymap": [
+        {
+            "id": "123456", // daymap internal ID
+            "sender": "Joe SMITH",
+            "date": "Mon Dec 6", // date sent, needs to be parsed
+            "subject": "Exam Results"
+        },
+        { /* ... */ },
+        { /* ... */ },
+        { /* ... */ }
+    ]
+}
+```
